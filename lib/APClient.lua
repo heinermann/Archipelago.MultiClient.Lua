@@ -1,11 +1,15 @@
 -- This is intended to be a general purpose lua client, so keeping dependencies slim.
-local JSON = dofile((AP_LIB_PATH or "lib") .. "/external/json.lua")
+local JSON = dofile((_G["AP_LIB_PATH"] or "lib") .. "/external/json.lua")
+
+-- luacheck: push ignore
+local unpack = table.unpack or unpack
+-- luacheck: pop
 
 ----------------------------------------------------------------------------------------------------
 -- LOCAL CONSTANTS
 ----------------------------------------------------------------------------------------------------
-local MESSAGE_TIMEOUT = 10 * 60 -- 10s in frames
-local NUM_RETRIES = 3
+-- local MESSAGE_TIMEOUT = 10 * 60 -- 10s in frames
+-- local NUM_RETRIES = 3
 
 ----------------------------------------------------------------------------------------------------
 -- APCLIENT TABLE
@@ -59,7 +63,7 @@ local game_tags = {"AP"}
 --
 --local packets_waiting = {} -- TODO
 
-local gameimpl = dofile((AP_LIB_PATH or "lib") .. "/APGameInterface.lua")
+local gameimpl = dofile((_G["AP_LIB_PATH"] or "lib") .. "/APGameInterface.lua")
 
 ----------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
@@ -277,7 +281,8 @@ function APClient.RECV.ReceivedItems(msg)
 
 	-- Attempt resync if the index is invalid
 	if next_item_index > #received_items then
-		gameimpl.error_fn("Missed " .. tostring(next_item_index - #received_items) .. " item(s) from the server, attempting to resync.")
+		local items_missed = next_item_index - #received_items
+		gameimpl.error_fn("Missed " .. tostring(items_missed) .. " item(s) from the server, attempting to resync.")
 		APClient.Sync()
 		return
 	end
@@ -287,7 +292,7 @@ function APClient.RECV.ReceivedItems(msg)
 		received_items[next_item_index + i] = item
 	end
 
-	local new_items = { table.unpack(received_items, last_index, #received_items) }
+	local new_items = { unpack(received_items, last_index, #received_items) }
 	gameimpl.received_items_fn(new_items)
 end
 
@@ -322,7 +327,7 @@ end
 
 -- TODO fix this
 local function ParseJSONPart(part)
-	local result = ""
+	local result
 	if part["type"] == "player_id" then
 		result = player_slot_to_name[tonumber(part["text"])]
 	elseif part["type"] == "item_id" then
@@ -362,7 +367,7 @@ function APClient.RECV.PrintJSON(msg)
 		msg_fn(msg)
 	elseif msg["data"] ~= nil then
 		local msg_str = ParseJSONParts(msg["data"])
-		GamePrint(msg_str)
+		gameimpl.game_print_fn(msg_str)
 	else
 		gameimpl.error_fn("Invalid PrintJSON format: " .. JSON:encode(msg))
 	end
@@ -412,7 +417,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 -- Retrieves the last message from the socket and parses it into a Lua-digestible format
-function GetNextMessage()
+local function GetNextMessage()
 	local raw_msg = socket:last_message()
 	if not raw_msg then
 		return nil
@@ -424,7 +429,7 @@ end
 
 
 -- Finds the appropriate function in the lookup table for a message, and calls it
-function ProcessMsg(msg)
+local function ProcessMsg(msg)
 	local cmd = msg["cmd"]
 
 	if APClient.RECV[cmd] then

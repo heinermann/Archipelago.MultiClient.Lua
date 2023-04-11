@@ -1,4 +1,4 @@
-local APClient = require "lib.APClient"
+local APClient = dofile("lib.APClient")
 
 describe("APClient", function()
 
