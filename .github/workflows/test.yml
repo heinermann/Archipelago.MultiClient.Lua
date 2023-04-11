@@ -1,0 +1,21 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lua_version: [5.1, 5.2, 5.3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Lua/LuaJIT
+        uses: leafo/gh-actions-lua@v10.0.0
+        with:
+          luaVersion: ${{ matrix.lua_version }}
+      - name: Install LuaRocks
+        uses: leafo/gh-actions-luarocks@v4
+      - name: Install modules
+        run: luarocks install luacov luacov-html
+      - name: Lua Busted
+        uses: lunarmodules/busted@v2.1.2
