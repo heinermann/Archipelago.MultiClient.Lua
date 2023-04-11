@@ -15,6 +15,8 @@ jobs:
           luaVersion: ${{ matrix.lua_version }}
       - name: Install LuaRocks
         uses: leafo/gh-actions-luarocks@v4
+      - name: Setup LCOV
+        uses: hrishikesh-kadam/setup-lcov@v1
       - name: Install modules
         run: |
           luarocks install luacov
