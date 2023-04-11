@@ -19,5 +19,8 @@ jobs:
         run: |
           luarocks install luacov
           luarocks install luacov-html
+          luarocks install busted
       - name: Lua Busted
-        uses: lunarmodules/busted@v2.1.2
+        run: |
+          busted --version
+          busted --verbose
