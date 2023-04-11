@@ -16,6 +16,8 @@ jobs:
       - name: Install LuaRocks
         uses: leafo/gh-actions-luarocks@v4
       - name: Install modules
-        run: luarocks install luacov luacov-html
+        run: |
+          luarocks install luacov
+          luarocks install luacov-html
       - name: Lua Busted
         uses: lunarmodules/busted@v2.1.2
