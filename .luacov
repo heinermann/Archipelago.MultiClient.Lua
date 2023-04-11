@@ -1,0 +1,12 @@
+return {
+  reporter = "html",
+  runreport = true,
+  deletestats = true,
+
+  include = {
+    "lib"
+  },
+  exclude = {
+    "lib/external"
+  },
+}
