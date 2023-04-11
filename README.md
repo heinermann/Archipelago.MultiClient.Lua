@@ -5,7 +5,8 @@ Assumes very minimal features available, i.e. `table`, `string`, `math`. Assumes
 
 Must register a table containing callbacks.
 
-## Lua Versions
+## Lua Versions In Video Games
+*Not a list of games that use this.*
 
 | Game             | Lua Version |
 | ---------------- | ----------- |
