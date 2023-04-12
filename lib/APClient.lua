@@ -1,9 +1,6 @@
 -- This is intended to be a general purpose lua client, so keeping dependencies slim.
 local JSON = dofile((_G["AP_LIB_PATH"] or "lib") .. "/external/json.lua")
-
--- luacheck: push ignore
-local unpack = table.unpack or unpack
--- luacheck: pop
+local Compat = dofile((_G["AP_LIB_PATH"] or "lib") .. "/Compat.lua")
 
 ----------------------------------------------------------------------------------------------------
 -- LOCAL CONSTANTS
@@ -29,8 +26,9 @@ local APClient = {
 		CLIENT_GOAL = 30,
 	},
 
-	-- Table containing Recv functions defined below
+	-- Tables containing Recv and Send functions defined below
 	RECV = {},
+	SEND = {},
 }
 
 ----------------------------------------------------------------------------------------------------
@@ -129,7 +127,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connect
-function APClient.Connect()
+function APClient.SEND.Connect()
 	SetConnectionState(APClient.STATE.CONNECTING)
 
 	SendCmd("Connect", {
@@ -145,19 +143,19 @@ end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#connectupdate
-function APClient.ConnectUpdate(opts)
+function APClient.SEND.ConnectUpdate(opts)
 	SendCmd("ConnectUpdate", opts)
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Sync
-function APClient.Sync()
+function APClient.SEND.Sync()
 	SendCmd("Sync")
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#locationchecks
-function APClient.LocationChecks(locations)
+function APClient.SEND.LocationChecks(locations)
 	if #locations > 0 then
 		SendCmd("LocationChecks", { locations = locations })
 	end
@@ -165,27 +163,30 @@ end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#locationscouts
-function APClient.LocationScouts(locations, create_as_hint)
+function APClient.SEND.LocationScouts(locations, create_as_hint)
+	if type(create_as_hint) == "boolean" and create_as_hint == true then create_as_hint = 1 end
 	if #locations > 0 then
-		SendCmd("LocationScouts", { locations = locations, create_as_hint = create_as_hint })
+		SendCmd("LocationScouts", { locations = locations, create_as_hint = create_as_hint or 0 })
 	end
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#statusupdate
-function APClient.StatusUpdate(status)
+function APClient.SEND.StatusUpdate(status)
 	SendCmd("StatusUpdate", { status = status })
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#say
-function APClient.Say(text)
-	SendCmd("Say", { text = text })
+function APClient.SEND.Say(text)
+	if text ~= nil and text ~= "" then
+		SendCmd("Say", { text = text })
+	end
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#getdatapackage
-function APClient.GetDataPackage(games)
+function APClient.SEND.GetDataPackage(games)
 	if #games > 0 then
 		SendCmd("GetDataPackage", { games = games })
 	end
@@ -193,25 +194,25 @@ end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#bounce
-function APClient.Bounce(opts)
+function APClient.SEND.Bounce(opts)
 	SendCmd("Bounce", opts)
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#get
-function APClient.Get(keys)
+function APClient.SEND.Get(keys)
 	SendCmd("Get", { keys = keys })
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#set
-function APClient.Set(opts)
+function APClient.SEND.Set(opts)
 	SendCmd("Set", { keys = opts })
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#setnotify
-function APClient.SetNotify(keys)
+function APClient.SEND.SetNotify(keys)
 	SendCmd("SetNotify", { keys = keys })
 end
 
@@ -237,9 +238,9 @@ function APClient.RECV.RoomInfo(msg)
 	end
 
 	if #datapackage_games ~= 0 then
-		APClient.GetDataPackage(datapackage_games)
+		APClient.SEND.GetDataPackage(datapackage_games)
 	else
-		APClient.Connect()
+		APClient.SEND.Connect()
 	end
 end
 
@@ -256,7 +257,7 @@ end
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#connected
 function APClient.RECV.Connected(msg)
-	APClient.Sync()
+	APClient.SEND.Sync()
 
 	current_player_slot = msg["slot"]
 	SetConnectionState(APClient.STATE.CONNECTED)
@@ -283,7 +284,7 @@ function APClient.RECV.ReceivedItems(msg)
 	if next_item_index > #received_items then
 		local items_missed = next_item_index - #received_items
 		gameimpl.error_fn("Missed " .. tostring(items_missed) .. " item(s) from the server, attempting to resync.")
-		APClient.Sync()
+		APClient.SEND.Sync()
 		return
 	end
 
@@ -292,7 +293,7 @@ function APClient.RECV.ReceivedItems(msg)
 		received_items[next_item_index + i] = item
 	end
 
-	local new_items = { unpack(received_items, last_index, #received_items) }
+	local new_items = { Compat.unpack(received_items, last_index, #received_items) }
 	gameimpl.received_items_fn(new_items)
 end
 
@@ -462,7 +463,7 @@ function APClient.SetDeathLinkEnabled(enabled)
 	if enabled then
 		table.insert(conn_tags, "DeathLink")
 	end
-	APClient.ConnectUpdate{ tags = conn_tags }
+	APClient.SEND.ConnectUpdate{ tags = conn_tags }
 end
 
 
@@ -472,7 +473,7 @@ function APClient.BounceDeathlink(death_msg, death_time)
 	deathlink_time_sent = death_time
 
 	local slotname = player_slot_to_name[current_player_slot]
-	APClient.Bounce{
+	APClient.SEND.Bounce{
 		tags = { "DeathLink" },
 		data = {
 				time = death_time,

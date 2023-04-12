@@ -6,12 +6,18 @@ return {
   compat = true,
   not_globals = {
     -- Noita restricted
-    "loadfile", "loadstring", "require", "gcinfo", "collectgarbage",
+    "loadstring", "require", "gcinfo", "collectgarbage",
     "coroutine", "debug", "io", "os", "package",
 
-    -- Compat
+    -- Noita compatibility
+    "bit", "jit", "do_mod_appends", "dofile_once", "print_error",
+
+    -- Civ V restricted
+    "load", "require", "loadfile",
+
+    -- compatibility
     "getfenv", "loadstring", "module", "rawlen", "setfenv", "unpack",
-    "bit32", "bit", "utf8", "file",
+    "bit32", "utf8", "file",
 
     -- table compat
     "table.maxn", "table.move", "table.pack", "table.unpack",
