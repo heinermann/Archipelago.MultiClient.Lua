@@ -12,6 +12,7 @@ Must register a table containing callbacks.
 | ------------------ | ----------- |
 | Binding of Isaac   | 5.1         |
 | Civilization V     | 5.1         |
+| Civilization VI    | 5.1         |
 | Don't Starve       | 5.1         |
 | Garry's Mod        | 5.1         |
 | Noita              | 5.1         |

@@ -187,7 +187,7 @@ end
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#getdatapackage
 function APClient.SEND.GetDataPackage(games)
-	if #games > 0 then
+	if games == nil or #games > 0 then
 		SendCmd("GetDataPackage", { games = games })
 	end
 end
@@ -201,19 +201,23 @@ end
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#get
 function APClient.SEND.Get(keys)
-	SendCmd("Get", { keys = keys })
+	if #keys > 0 then
+		SendCmd("Get", { keys = keys })
+	end
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#set
 function APClient.SEND.Set(opts)
-	SendCmd("Set", { keys = opts })
+	SendCmd("Set", opts)
 end
 
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#setnotify
 function APClient.SEND.SetNotify(keys)
-	SendCmd("SetNotify", { keys = keys })
+	if #keys > 0 then
+		SendCmd("SetNotify", { keys = keys })
+	end
 end
 
 
