@@ -3,6 +3,7 @@
     "describe",
     "it",
     "mock",
-    "before_each"
+    "before_each",
+    "spy"
   ]
 }

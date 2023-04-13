@@ -1,10 +1,6 @@
 return {
-  game = "Archipelago",
+  game = "",
   items_handling = 7,
-
-  get_name = function() return "" end,
-  get_password = function() return "" end,
-  get_tags = function() return {"AP"} end,
 
   log_fn = function(str) print(str) end,
 	error_fn = function(str) print(str) end,

@@ -13,11 +13,32 @@ describe("APClient.SEND", function()
 
     local conn = dofile("lib/ConnectionInterface.lua")
     ConnInterface = mock(conn)
-    APClient.InitConnectionInterface(ConnInterface)
+    APClient.RegisterConnectionInterface(ConnInterface)
   end)
 
   describe("Connect", function()
-    -- TODO
+    it("sends an uninitialized packet", function()
+      APClient.SEND.Connect()
+      self_called_with(ConnInterface.send, '[{"cmd":"Connect","game":"","items_handling":7,"name":"","password":"","tags":["AP"],"uuid":"_","version":{"build":0,"class":"Version","major":0,"minor":4}}]')
+    end)
+
+    it("sends an initialized packet", function()
+      APClient.RegisterGameInterface({
+        game = "Noita",
+        items_handling = 4
+      })
+
+      APClient.SetConnectionInfo("Hein", "Cats", {"AP", "DeathLink"})
+
+      APClient.SEND.Connect()
+      self_called_with(ConnInterface.send, '[{"cmd":"Connect","game":"Noita","items_handling":4,"name":"Hein","password":"Cats","tags":["AP","DeathLink"],"uuid":"Noita_Hein","version":{"build":0,"class":"Version","major":0,"minor":4}}]')
+    end)
+
+    it("modifies the connection state to connecting", function ()
+      spy.on(APClient, "SetConnectionState")
+      APClient.SEND.Connect()
+      assert.spy(APClient.SetConnectionState).was_called_with(APClient.STATE.CONNECTING)
+    end)
   end)
 
   describe("ConnectUpdate", function()
@@ -26,10 +47,12 @@ describe("APClient.SEND", function()
         APClient.SEND.ConnectUpdate({items_handling = 7})
         self_called_with(ConnInterface.send, '[{"cmd":"ConnectUpdate","items_handling":7}]')
       end)
+
       it("updates tags", function ()
         APClient.SEND.ConnectUpdate({tags = {"DeathLink"}})
         self_called_with(ConnInterface.send, '[{"cmd":"ConnectUpdate","tags":["DeathLink"]}]')
       end)
+
       it("updates both item_handling and tags", function ()
         APClient.SEND.ConnectUpdate({item_handling = 4, tags = {"DeathLink"}})
         self_called_with(ConnInterface.send, '[{"cmd":"ConnectUpdate","item_handling":4,"tags":["DeathLink"]}]')
@@ -203,7 +226,33 @@ describe("APClient.SEND", function()
   end)
 
   describe("Bounce", function()
-    -- TODO
+    describe("sends a packet if", function ()
+      it("is called with nothing", function ()
+        APClient.SEND.Bounce()
+        self_called_with(ConnInterface.send, '[{"cmd":"Bounce"}]')
+      end)
+
+      it("is called with args", function ()
+        APClient.SEND.Bounce({
+          games = {"Noita", "Dark Souls"},
+          slots = {1, 2},
+          tags = {"DeathLink", "AP"},
+        })
+        self_called_with(ConnInterface.send, '[{"cmd":"Bounce","games":["Noita","Dark Souls"],"slots":[1,2],"tags":["DeathLink","AP"]}]')
+      end)
+
+      it("is called with data", function ()
+        APClient.SEND.Bounce({
+          tags = {"DeathLink"},
+          data = {
+            time = 100.300,
+            cause = "stupidity",
+            source = "me"
+          }
+        })
+        self_called_with(ConnInterface.send, '[{"cmd":"Bounce","data":{"cause":"stupidity","source":"me","time":100.3},"tags":["DeathLink"]}]')
+      end)
+    end)
   end)
 
   describe("Get", function()

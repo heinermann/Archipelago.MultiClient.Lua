@@ -72,16 +72,18 @@ end
 
 
 -- Sets the connection state and notifies that it has changed w/ an optional message
-local function SetConnectionState(state, msg)
-	connection_state = state
-	gameimpl.notify_state_change_fn(state, msg)
+function APClient.SetConnectionState(state, msg)
+	if connection_state ~= state then
+		connection_state = state
+		gameimpl.notify_state_change_fn(state, msg)
+	end
 end
 
 
 -- Logs an error message and notifies that the client has disconnected.
 local function ConnError(msg)
 	gameimpl.error_fn(msg)
-	SetConnectionState(APClient.STATE.DISCONNECTED, msg)
+	APClient.SetConnectionState(APClient.STATE.DISCONNECTED, msg)
 end
 
 
@@ -106,15 +108,6 @@ local function HasError()
 end
 
 
-function APClient.InitConnectionInterface(connect_interface)
-	if socket then return true end
-
-	socket = connect_interface
-	SetConnectionState(APClient.STATE.CONNECTING)
-	return not HasError()
-end
-
-
 local function contains_element(tbl, elem)
 	for _, v in ipairs(tbl) do
 		if v == elem then return true end
@@ -122,20 +115,44 @@ local function contains_element(tbl, elem)
 	return false
 end
 
+
+function APClient.RegisterGameInterface(impl)
+	for name, fn in pairs(impl) do
+		gameimpl[name] = fn
+	end
+end
+
+
+function APClient.RegisterConnectionInterface(connect_interface)
+	if socket then return true end
+
+	socket = connect_interface
+	APClient.SetConnectionState(APClient.STATE.CONNECTING)
+	return not HasError()
+end
+
+
+function APClient.SetConnectionInfo(name, password, tags)
+	game_name = name
+	game_password = password or ""
+	game_tags = tags or {"AP"}
+end
+
+
 ----------------------------------------------------------------------------------------------------
 -- CLIENT TO SERVER
 ----------------------------------------------------------------------------------------------------
 
 -- https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#Connect
 function APClient.SEND.Connect()
-	SetConnectionState(APClient.STATE.CONNECTING)
+	APClient.SetConnectionState(APClient.STATE.CONNECTING)
 
 	SendCmd("Connect", {
 		password = game_password or "",
 		game = gameimpl.game,
 		name = game_name,
 		uuid = gameimpl.game .. "_" .. game_name,	-- TODO: Generate UUID?
-		tags = game_tags or { "AP" },
+		tags = game_tags,
 		version = { major = 0, minor = 4, build = 0, class = "Version" },
 		items_handling = gameimpl.items_handling or 7
 	})
@@ -264,7 +281,7 @@ function APClient.RECV.Connected(msg)
 	APClient.SEND.Sync()
 
 	current_player_slot = msg["slot"]
-	SetConnectionState(APClient.STATE.CONNECTED)
+	APClient.SetConnectionState(APClient.STATE.CONNECTED)
 
 	for _, plr in pairs(msg["players"]) do
 		player_slot_to_name[plr["slot"]] = plr["name"]
@@ -463,11 +480,10 @@ end
 
 function APClient.SetDeathLinkEnabled(enabled)
 	death_link_enabled = enabled
-	local conn_tags = { "AP" }
-	if enabled then
-		table.insert(conn_tags, "DeathLink")
+	if enabled and not contains_element(game_tags, "DeathLink") then
+		table.insert(game_tags, "DeathLink")
 	end
-	APClient.SEND.ConnectUpdate{ tags = conn_tags }
+	APClient.SEND.ConnectUpdate{ tags = game_tags }
 end
 
 
@@ -487,12 +503,6 @@ function APClient.BounceDeathlink(death_msg, death_time)
 	}
 end
 
-
-function APClient.RegisterGame(impl)
-	for name, fn in pairs(impl) do
-		gameimpl[name] = fn
-	end
-end
 
 ----------------------------------------------------------------------------------------------------
 return APClient
